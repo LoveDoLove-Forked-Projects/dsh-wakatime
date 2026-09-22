@@ -60,6 +60,7 @@ All fields are optional and validated by a schemastery schema at load.
 - **Automatic CLI management** — downloads and updates `wakatime-cli` automatically, or uses a global install (`brew install wakatime-cli`)
 - **Detailed file tracking** — tracks file operations the agent performs: `edit`, `write`, `read`, `read_image`, and `str_replace_editor` (`view`/`create`/`str_replace`/`insert`)
 - **Resolved-path accuracy (dsh 0.1.3-alpha.1)** — reads the fs tools' durable `tool/result` `meta`: resolved (sandbox-aware) entity paths and exact diff hunks win over raw call arguments when present
+- **Exact write outcomes (dsh 0.1.7-alpha.1)** — the `write` result's `operation` stamp (`create`/`update`) distinguishes a created file (content lines charged) from an unchanged overwrite (zero line changes, heartbeat only)
 - **AI coding metrics** — sends `--ai-line-changes` for WakaTime's AI coding analytics, computed exactly from the fs tools' diff hunks (context lines excluded)
 - **Live activity heartbeats (dsh 0.1.3-alpha.1)** — `agent/status` transitions and the `agent/assistant-stream` firehose heartbeat the current file in near real time while a long turn streams, instead of waiting for the durable settlement
 - **Rate-limited heartbeats** — 1 per minute per project, persisted to disk so parallel dsh processes share the budget (durable changes and live activity draw from the same budget)
@@ -118,9 +119,11 @@ flowchart TB
 
 - `tool/call` records the tool name and parsed arguments by `callId`; `tool/result`
   matches it back and reads the fs tools' durable `meta` payload — resolved
-  entity paths (`read`, `read_image`) and diff hunks (`edit`, `write`) — for
-  exact per-hunk line counts, falling back to the call arguments when a host
-  attaches no meta (`write` content, `str_replace_editor` strings).
+  entity paths (`read`, `read_image`), diff hunks (`edit`, `write`), and the
+  `write` outcome stamp (dsh 0.1.7-alpha.1) — for exact per-hunk line counts,
+  falling back to the call arguments when a host attaches no meta (`write`
+  content, `str_replace_editor` strings). A `write` update with an empty hunk
+  list is charged zero lines; a create is charged its content lines.
 - Heartbeats are sent at most once per minute per project (state file under
   `~/.wakatime/dsh-wakatime/`), on chat activity, tool results, committed model
   settlements (including message-less `assistant/attempt` records in dsh

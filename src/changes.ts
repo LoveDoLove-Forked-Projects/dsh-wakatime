@@ -7,7 +7,10 @@
  * `tool/result` record:
  *
  * - `edit` / `write` → `{ diffs: FileDiff[] }` — exact per-hunk line counts
- *   after trimming the shared context lines;
+ *   after trimming the shared context lines; since dsh 0.1.7-alpha.1 `write`
+ *   also stamps `operation: 'create' | 'update'`, which tells an empty hunk
+ *   list of a create (charge the content) from one of an unchanged overwrite
+ *   (charge nothing);
  * - `read` / `read_image` → `{ path: <resolved display path>, … }` — the
  *   authoritative (sandbox-resolved) entity path.
  *
@@ -65,6 +68,16 @@ export function metaEntityPath(meta: unknown): string | undefined {
   if (!isRecord(meta)) return undefined
   const path = meta.path
   return typeof path === 'string' && path.length > 0 ? path : undefined
+}
+
+/**
+ * The `create`/`update` outcome the fs `write` tool stamps on its result
+ * `meta` (dsh >= 0.1.7-alpha.1). `undefined` on older hosts and on other tools.
+ */
+export function metaOperation(meta: unknown): 'create' | 'update' | undefined {
+  if (!isRecord(meta)) return undefined
+  const operation = meta.operation
+  return operation === 'create' || operation === 'update' ? operation : undefined
 }
 
 /**
@@ -159,7 +172,11 @@ export function extractFileChanges(
       const file = entityPath(args.file_path, metaPath)
       if (file === undefined) return []
       if (hunks !== undefined) return changesFromHunks(hunks, true)
-      // A create (or identical overwrite) has no hunk: charge the content lines.
+      // An empty hunk list is ambiguous on its own: `operation: 'update'`
+      // (dsh >= 0.1.7-alpha.1) means the overwrite changed nothing, while
+      // `'create'` — or an older host that stamps no outcome — charges the
+      // written content lines.
+      if (metaOperation(meta) === 'update') return [{ file, additions: 0, deletions: 0, isWrite: true }]
       return [{ file, additions: countLines(args.content as string | null | undefined), deletions: 0, isWrite: true }]
     }
     case 'read':

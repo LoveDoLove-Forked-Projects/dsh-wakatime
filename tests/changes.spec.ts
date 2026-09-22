@@ -142,8 +142,31 @@ describe('meta extraction (dsh 0.1.3-alpha.1)', () => {
       .toEqual([{ file: '/repo/new.ts', additions: 2, deletions: 0, isWrite: true }])
   })
 
+  it('charges content lines for a write create stamped by dsh 0.1.7-alpha.1', () => {
+    expect(extractFileChanges('write', { file_path: '/repo/new.ts', content: 'a\nb' }, { diffs: [], operation: 'create' }))
+      .toEqual([{ file: '/repo/new.ts', additions: 2, deletions: 0, isWrite: true }])
+  })
+
+  it('reports zero line changes for an unchanged overwrite (dsh 0.1.7 operation: update)', () => {
+    // The write rewrote the file with identical content: the file was touched
+    // (heartbeat + is_write) but no lines changed.
+    expect(extractFileChanges('write', { file_path: '/repo/same.ts', content: 'a\nb' }, { diffs: [], operation: 'update' }))
+      .toEqual([{ file: '/repo/same.ts', additions: 0, deletions: 0, isWrite: true }])
+  })
+
+  it('ignores an unknown operation stamp and keeps the create fallback', () => {
+    expect(extractFileChanges('write', { file_path: '/repo/c.ts', content: 'a' }, { diffs: [], operation: 'weird' }))
+      .toEqual([{ file: '/repo/c.ts', additions: 1, deletions: 0, isWrite: true }])
+  })
+
   it('counts exact hunk lines for a write overwrite with meta diffs', () => {
     const meta = { diffs: [{ path: '/repo/b.ts', oldText: 'ctx\na\nctx', newText: 'ctx\nb\nc\nctx' }] }
+    expect(extractFileChanges('write', { file_path: '/repo/b.ts', content: 'unused' }, meta))
+      .toEqual([{ file: '/repo/b.ts', additions: 2, deletions: 1, isWrite: true }])
+  })
+
+  it('prefers exact hunks over the operation stamp for a write update', () => {
+    const meta = { diffs: [{ path: '/repo/b.ts', oldText: 'x', newText: 'y\nz' }], operation: 'update' }
     expect(extractFileChanges('write', { file_path: '/repo/b.ts', content: 'unused' }, meta))
       .toEqual([{ file: '/repo/b.ts', additions: 2, deletions: 1, isWrite: true }])
   })

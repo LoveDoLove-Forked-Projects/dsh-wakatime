@@ -59,6 +59,7 @@ dsh web
 - **自动管理 CLI** —— 自动下载并更新 `wakatime-cli`；检测到全局安装（`brew install wakatime-cli`）时直接使用
 - **细粒度文件追踪** —— 追踪 agent 执行的文件操作：`edit`、`write`、`read`、`read_image`，以及 `str_replace_editor`（`view`/`create`/`str_replace`/`insert`）
 - **解析路径准确性（dsh 0.1.3-alpha.1）** —— 优先读取 fs 工具持久化在 `tool/result` `meta` 中的信息：沙箱解析后的实际路径与精确 diff hunk；没有 meta 时回退到调用参数
+- **精确的 write 结果语义（dsh 0.1.7-alpha.1）** —— `write` 结果新增 `operation`（`create`/`update`）标记：新建文件按内容行数计费，内容未变的覆写记 0 行变化（只发心跳）
 - **AI 编码指标** —— 发送 `--ai-line-changes` 供 WakaTime AI 编码分析使用；行数根据 fs 工具的 diff hunk 精确计算（上下文行已剔除）
 - **实时活动 heartbeat（dsh 0.1.3-alpha.1）** —— 长时间回合流式输出期间，`agent/status` 状态切换与 `agent/assistant-stream` 事件流会以接近实时的节奏对当前文件发送 heartbeat，无需等待持久化结算事件
 - **限频 heartbeat** —— 每个项目每分钟最多 1 次，状态持久化到磁盘，多个 dsh 进程共享配额（持久化变更与实时活动共用同一配额）
@@ -93,8 +94,9 @@ brew install wakatime-cli
 
 插件订阅 dsh 的会话事件流（`session/event`）：
 
-- `tool/call` 按 `callId` 记录工具名与解析后的参数；`tool/result` 回查并读取 fs 工具持久化的 `meta` 载荷 —— 解析后的实体路径（`read`、`read_image`）与 diff hunk（`edit`、`write`），
-  得到每个 hunk 的精确增删行数；宿主未附加 meta 时回退到参数推导（`write` 内容、`str_replace_editor` 字符串）。
+- `tool/call` 按 `callId` 记录工具名与解析后的参数；`tool/result` 回查并读取 fs 工具持久化的 `meta` 载荷 —— 解析后的实体路径（`read`、`read_image`）、diff hunk（`edit`、`write`），
+  以及 `write` 的结果标记（dsh 0.1.7-alpha.1 的 `operation`），得到每个 hunk 的精确增删行数；宿主未附加 meta 时回退到参数推导（`write` 内容、`str_replace_editor` 字符串）。
+  `operation: update` 且 hunk 为空表示内容未变（记 0 行），`create` 则按写入内容行数计费。
 - 每个项目每分钟最多发送一次 heartbeat（状态文件位于 `~/.wakatime/dsh-wakatime/`）；
   触发时机包括聊天活动、工具结果、已提交的模型结算（含 dsh 0.1.3-alpha.1 中无消息的 `assistant/attempt` 记录）、
   实时 agent 活动（`agent/status`、`agent/assistant-stream`）、turn 边界、会话销毁与插件卸载。
