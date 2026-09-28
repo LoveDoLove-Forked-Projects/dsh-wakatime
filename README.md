@@ -123,7 +123,9 @@ flowchart TB
   `write` outcome stamp (dsh 0.1.7-alpha.1) — for exact per-hunk line counts,
   falling back to the call arguments when a host attaches no meta (`write`
   content, `str_replace_editor` strings). A `write` update with an empty hunk
-  list is charged zero lines; a create is charged its content lines.
+  list is charged zero lines; a create is charged its content lines. Failed
+  results — including the synthetic recovery closers agent-loop records for
+  skipped calls when a step fails (dsh 0.2.0) — are never charged.
 - Heartbeats are sent at most once per minute per project (state file under
   `~/.wakatime/dsh-wakatime/`), on chat activity, tool results, committed model
   settlements (including message-less `assistant/attempt` records in dsh

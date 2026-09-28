@@ -50,7 +50,12 @@ function toolCall(callId: string, tool: string, args: Record<string, unknown>): 
   } as unknown as SessionEvent
 }
 
-function toolResult(callId: string, meta?: unknown, error?: { name: string; code: string }): SessionEvent {
+function toolResult(
+  callId: string,
+  meta?: unknown,
+  error?: { name: string; code: string },
+  isError?: boolean,
+): SessionEvent {
   return {
     type: 'tool/result',
     seq: 1,
@@ -58,7 +63,7 @@ function toolResult(callId: string, meta?: unknown, error?: { name: string; code
     data: {
       turn: 0,
       step: 0,
-      message: { source: { callId } },
+      message: { source: { callId }, ...isError === true ? { isError: true } : {} },
       ...error === undefined ? {} : { error },
       ...meta === undefined ? {} : { meta },
     },
@@ -178,6 +183,40 @@ describe('plugin wiring', () => {
     await fiber.dispose()
     await new Promise((resolve) => setImmediate(resolve))
     expect(spawnMock).not.toHaveBeenCalled()
+  })
+
+  it('never charges failed results, including dsh 0.2.0 recovery closers', async () => {
+    const ctx = new Context()
+    const fiber = await ctx.plugin({ name, Config, apply }, { debug: true, heartbeatIntervalMs: 0 })
+    spawnMock.mockReturnValue(autoClosingChild())
+
+    // A failed write with only `isError` (no failure identity) must not be
+    // charged as if its content had been written.
+    ctx.emit('session/event', session, toolCall('w1', 'write', { file_path: '/tmp/wk-project/a.ts', content: 'a\nb\nc' }))
+    ctx.emit('session/event', session, toolResult('w1', undefined, undefined, true))
+
+    // agent-loop records these synthetic closers for tool calls that never
+    // started (or whose outcome is unknown) when a step fails.
+    ctx.emit('session/event', session, toolCall('w2', 'write', { file_path: '/tmp/wk-project/b.ts', content: 'x\ny' }))
+    ctx.emit('session/event', session, toolResult('w2', undefined, { name: 'ToolNotStartedError', code: 'TOOL_NOT_STARTED' }))
+    ctx.emit('session/event', session, toolCall('w3', 'edit', { file_path: '/tmp/wk-project/c.ts' }))
+    ctx.emit('session/event', session, toolResult('w3', undefined, { name: 'ToolOutcomeUnknownError', code: 'TOOL_OUTCOME_UNKNOWN' }))
+
+    await new Promise((resolve) => setImmediate(resolve))
+    expect(spawnMock).not.toHaveBeenCalled()
+
+    // A successful edit in the same session still reports normally.
+    ctx.emit('session/event', session, toolCall('e1', 'edit', { file_path: '/tmp/wk-project/d.ts' }))
+    ctx.emit('session/event', session, toolResult('e1', {
+      diffs: [{ path: '/tmp/wk-project/d.ts', oldText: 'x', newText: 'y\nz' }],
+    }))
+    await new Promise((resolve) => setImmediate(resolve))
+    expect(spawnMock).toHaveBeenCalledTimes(1)
+    const args = spawnMock.mock.calls[0]![1] as string[]
+    expect(args).toContain('/tmp/wk-project/d.ts')
+    expect(args).toContain('--ai-line-changes')
+
+    await fiber.dispose()
   })
 
   it('prefers the resolved read path from tool/result meta (dsh 0.1.3-alpha.1)', async () => {

@@ -97,6 +97,7 @@ brew install wakatime-cli
 - `tool/call` 按 `callId` 记录工具名与解析后的参数；`tool/result` 回查并读取 fs 工具持久化的 `meta` 载荷 —— 解析后的实体路径（`read`、`read_image`）、diff hunk（`edit`、`write`），
   以及 `write` 的结果标记（dsh 0.1.7-alpha.1 的 `operation`），得到每个 hunk 的精确增删行数；宿主未附加 meta 时回退到参数推导（`write` 内容、`str_replace_editor` 字符串）。
   `operation: update` 且 hunk 为空表示内容未变（记 0 行），`create` 则按写入内容行数计费。
+  失败的结果一律不计费——包括 dsh 0.2.0 中 agent-loop 为未执行调用补写的合成恢复结果（recovery closers）。
 - 每个项目每分钟最多发送一次 heartbeat（状态文件位于 `~/.wakatime/dsh-wakatime/`）；
   触发时机包括聊天活动、工具结果、已提交的模型结算（含 dsh 0.1.3-alpha.1 中无消息的 `assistant/attempt` 记录）、
   实时 agent 活动（`agent/status`、`agent/assistant-stream`）、turn 边界、会话销毁与插件卸载。

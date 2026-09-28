@@ -190,7 +190,11 @@ export function apply(ctx: Context, rawConfig: ConfigShape | undefined): void {
         const callId = String(event.data.message.source.callId)
         const pending = pendingCalls.get(callId)
         pendingCalls.delete(callId)
-        if (pending === undefined || event.data.error !== undefined) break
+        // A failed call applied no change: skip results carrying a failure
+        // identity and any result whose message is an error. The latter covers
+        // failures normalized without `info` as well as the synthetic recovery
+        // results agent-loop records for skipped calls (dsh 0.2.0).
+        if (pending === undefined || event.data.error !== undefined || event.data.message.isError === true) break
         const changes = extractFileChanges(pending.tool, pending.args, event.data.meta)
         if (changes.length === 0) break
         for (const change of changes) {
