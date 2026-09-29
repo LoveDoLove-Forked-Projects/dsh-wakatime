@@ -16,11 +16,25 @@ dsh plugin --profile web add @dingyi222666/dsh-wakatime
 dsh web
 ```
 
-插件适用于任何运行 agent 循环的 profile —— `web`、`headless`、`tui` 等。每个要用的 profile 都需要安装一次：
+插件适用于任何运行 agent 循环的 profile —— `web`、`headless`、`acp`、`sdk`，以及桌面端的 `desktop` profile。每个要用的 profile 都需要安装一次：
 
 ```sh
 dsh plugin --profile headless add @dingyi222666/dsh-wakatime
 ```
+
+### 桌面端（Desktop 应用）
+
+DeepSeek Harness 桌面端是基于同一套 Web host 的 Electron 外壳，但它独占一个独立的 profile（`$DSH_HOME/profiles/desktop`）与独立的包状态。需要用**应用内置的 CLI** 安装——npm 安装的 `dsh` 无法修改 Desktop profile：
+
+```sh
+# 1. 先启动一次 Desktop 让它初始化 profiles/desktop，然后完全退出应用。
+# 2. 运行内置 CLI（下例为 macOS 路径；Windows 为 resources\runtime\cli\bin\dsh.cmd）：
+"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
+  plugin --profile desktop add @dingyi222666/dsh-wakatime
+# 3. 重新打开 Desktop，bundle 补丁会在下次启动时生效。
+```
+
+同一命令也支持更新（`add @dingyi222666/dsh-wakatime@latest`）、`list` 与 `remove <package>`，并保留共享的 profile 写锁与兼容性检查。由于 Desktop host 与插件运行在同一个 Electron Node 进程中，插件采集的事件与 heartbeat 行为与 Web profile 完全一致。
 
 ### 从源码安装（GitHub）
 

@@ -16,11 +16,32 @@ dsh plugin --profile web add @dingyi222666/dsh-wakatime
 dsh web
 ```
 
-The plugin works in any profile that runs the agent loop — `web`, `headless`, `tui`, … — install it into each profile you use:
+The plugin works in any profile that runs the agent loop — `web`, `headless`, `acp`, `sdk`, and the Desktop app's `desktop` profile — install it into each profile you use:
 
 ```sh
 dsh plugin --profile headless add @dingyi222666/dsh-wakatime
 ```
+
+### Desktop app
+
+The DeepSeek Harness Desktop application is an Electron shell around the same Web
+host, but it exclusively owns a separate profile (`$DSH_HOME/profiles/desktop`)
+and its own package state. Install the plugin there with the CLI bundled inside
+the app — an npm-installed `dsh` cannot mutate the Desktop profile:
+
+```sh
+# 1. Launch Desktop once so it initializes profiles/desktop, then fully quit it.
+# 2. Run the bundled CLI (macOS path shown; Windows uses resources\runtime\cli\bin\dsh.cmd):
+"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
+  plugin --profile desktop add @dingyi222666/dsh-wakatime
+# 3. Reopen Desktop; the bundle patch applies on the next boot.
+```
+
+The same command manages updates (`add @dingyi222666/dsh-wakatime@latest`),
+`list`, and `remove <package>`, and it keeps the shared Desktop profile lock and
+compatibility checks intact. Because both the Desktop host and its plugins run in
+the same Electron Node process, the tracked events and heartbeats are identical to
+the Web profile.
 
 ### From source (GitHub)
 
