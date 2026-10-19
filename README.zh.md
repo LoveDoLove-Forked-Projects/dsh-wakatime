@@ -10,7 +10,7 @@ English | [中文](README.zh.md)
 ## 安装
 
 ```sh
-# 从 npm 安装（需要 dsh >= 0.1.3-alpha.2）
+# 从 npm 安装（需要 dsh >= 0.1.3-alpha.2 <0.3.0-0，由 engines.dsh 声明）
 dsh plugin --profile web add @dingyi222666/dsh-wakatime
 # 重启 dsh web 生效
 dsh web
@@ -49,6 +49,7 @@ dsh web
 说明：
 
 - `dsh plugin` 等同于向 profile 添加依赖。bundle 插件的完整包名出现在 profile 的 `dsh.profile.bundles` 列表后即被加载（自动添加）；bundle 补丁（`cordis.patch.yml`）在下一次启动时生效。
+- 插件声明了 **`engines.dsh`（`>=0.1.3-alpha.2 <0.3.0-0`）**：dsh 在安装与 profile 启动时会拒绝范围外的宿主（dsh 0.2.1-alpha.3 起以它取代 peer 范围检查；存在 `engines.dsh` 时不再用 `@deepseek-ai/dsh*` peer 判定兼容性；`<0.3.0-0` 上界同时排除 0.3 的预发布）。
 - 更新时重新执行相同命令即可。
 - 使用仓库源码启动的 CLI 时，直接通过 bin 传入参数（`node --import tsx/esm apps/cli/src/bin.ts plugin --profile web add @dingyi222666/dsh-wakatime`）。
 

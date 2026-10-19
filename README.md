@@ -10,7 +10,7 @@ WakaTime plugin for [DeepSeek Harness (dsh)](https://github.com/deepseek-ai/deep
 ## Install
 
 ```sh
-# Install from npm (requires dsh >= 0.1.3-alpha.2)
+# Install from npm (requires dsh >= 0.1.3-alpha.2 <0.3.0-0, declared as engines.dsh)
 dsh plugin --profile web add @dingyi222666/dsh-wakatime
 # Restart dsh web for it to take effect
 dsh web
@@ -56,6 +56,7 @@ dsh web
 Notes:
 
 - `dsh plugin` behaves like adding a dependency to your profile. A bundle plugin is loaded once its full package name appears in the profile's `dsh.profile.bundles` list (added automatically); the bundle patch (`cordis.patch.yml`) applies on the next boot.
+- The bundle declares **`engines.dsh` (`>=0.1.3-alpha.2 <0.3.0-0`)**: dsh installation and profile startup refuse a host outside that range (this replaced the peer-range check in dsh 0.2.1-alpha.3 — when `engines.dsh` is present, the `@deepseek-ai/dsh*` peers are ignored for compatibility; the `<0.3.0-0` bound also excludes 0.3 prereleases).
 - To update, run the same command again.
 - With the repo source-launched CLI, run the args through the bin directly (`node --import tsx/esm apps/cli/src/bin.ts plugin --profile web add @dingyi222666/dsh-wakatime`).
 
